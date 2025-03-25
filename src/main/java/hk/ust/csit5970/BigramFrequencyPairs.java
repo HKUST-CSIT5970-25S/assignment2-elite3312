@@ -33,7 +33,7 @@ import org.apache.log4j.Logger;
  */
 public class BigramFrequencyPairs extends Configured implements Tool {
 	private static final Logger LOG = Logger.getLogger(BigramFrequencyPairs.class);
-
+	private  static float cur_left_cnt=0;
 	/*
 	 * TODO: write your Mapper here.
 	 */
@@ -42,6 +42,8 @@ public class BigramFrequencyPairs extends Configured implements Tool {
 
 		// Reuse objects to save overhead of object creation.
 		private static final IntWritable ONE = new IntWritable(1);
+		
+		private static final PairOfStrings BIGRAM_for_single_word = new PairOfStrings();
 		private static final PairOfStrings BIGRAM = new PairOfStrings();
 
 		@Override
@@ -49,31 +51,31 @@ public class BigramFrequencyPairs extends Configured implements Tool {
 				throws IOException, InterruptedException {
 			String line = ((Text) value).toString();
 			String[] words = line.trim().split("\\s+");
+
+			if (words.length > 1){
+				String previous_word = words[0];
+
+				BIGRAM_for_single_word.set(previous_word, '');
+				context.write(BIGRAM_for_single_word, ONE);
+
+				for (int i = 1; i < words.length; i++) {
+					String w = words[i];
+					// Skip empty words
+					if (w.length() == 0) {
+						continue;
+					}
+					BIGRAM.set(previous_word, w);
+					context.write(BIGRAM, ONE);
+					
+					previous_word = w;
+
+					BIGRAM_for_single_word.set(previous_word, '');
+					context.write(BIGRAM_for_single_word, ONE);
+				}
+			}
 			
-			/*
-			 * TODO: Your implementation goes here.
-			 */
 		}
 	}
-
-	/*
-	 * TODO: Write your reducer here.
-	 */
-	private static class MyReducer extends
-			Reducer<PairOfStrings, IntWritable, PairOfStrings, FloatWritable> {
-
-		// Reuse objects.
-		private final static FloatWritable VALUE = new FloatWritable();
-
-		@Override
-		public void reduce(PairOfStrings key, Iterable<IntWritable> values,
-				Context context) throws IOException, InterruptedException {
-			/*
-			 * TODO: Your implementation goes here.
-			 */
-		}
-	}
-	
 	private static class MyCombiner extends
 			Reducer<PairOfStrings, IntWritable, PairOfStrings, IntWritable> {
 		private static final IntWritable SUM = new IntWritable();
@@ -81,11 +83,46 @@ public class BigramFrequencyPairs extends Configured implements Tool {
 		@Override
 		public void reduce(PairOfStrings key, Iterable<IntWritable> values,
 				Context context) throws IOException, InterruptedException {
-			/*
-			 * TODO: Your implementation goes here.
-			 */
+		
+			int sum = 0;
+			for(IntWritable value : values){
+				sum += value.get();
+			}
+			SUM.set(sum);
+			context.write(key, SUM);
+			
 		}
 	}
+	
+	private static class MyReducer extends
+			Reducer<PairOfStrings, IntWritable, PairOfStrings, FloatWritable> {
+
+		// Reuse objects.
+		private final static FloatWritable VALUE = new FloatWritable();
+		
+		//the keys are sorted, so we can simply use cur_left_cnt to store the count of the left element
+
+		@Override
+		public void reduce(PairOfStrings key, Iterable<IntWritable> values,
+				Context context) throws IOException, InterruptedException {
+			float sum = 0.0;
+		    for (IntWritable v: values) {
+		         sum += v.get();
+		    }
+	
+		    if(key.getRightElement().toString().equals("")){
+		    	cur_left_cnt = sum;
+		    	VALUE.set(cur_left_cnt);
+		    	context.write(key, VALUE);
+		    }
+		    else{
+		    	VALUE.set(sum /(float) cur_left_cnt);
+		    	context.write(key, VALUE);
+		    }
+		}
+	}
+	
+	
 
 	/*
 	 * Partition bigrams based on their left elements
