@@ -43,7 +43,7 @@ public class BigramFrequencyPairs extends Configured implements Tool {
 		// Reuse objects to save overhead of object creation.
 		private static final IntWritable ONE = new IntWritable(1);
 		
-		private static final PairOfStrings BIGRAM_for_single_word = new PairOfStrings();
+		//private static final PairOfStrings BIGRAM_for_single_word = new PairOfStrings();
 		private static final PairOfStrings BIGRAM = new PairOfStrings();
 
 		@Override
@@ -52,26 +52,12 @@ public class BigramFrequencyPairs extends Configured implements Tool {
 			String line = ((Text) value).toString();
 			String[] words = line.trim().split("\\s+");
 
-			if (words.length > 1){
-				String previous_word = words[0];
+			for (int i=0; i<words.length-1; ++i) {
+				BIGRAM.set(words[i],"");
+				context.write(BIGRAM, ONE);
+				BIGRAM.set(words[i],words[i+1]);
+				context.write(BIGRAM, ONE);
 
-				BIGRAM_for_single_word.set(previous_word, "");
-				context.write(BIGRAM_for_single_word, ONE);
-
-				for (int i = 1; i < words.length; i++) {
-					String w = words[i];
-					// Skip empty words
-					if (w.length() == 0) {
-						continue;
-					}
-					BIGRAM.set(previous_word, w);
-					context.write(BIGRAM, ONE);
-					
-					previous_word = w;
-
-					BIGRAM_for_single_word.set(previous_word, "");
-					context.write(BIGRAM_for_single_word, ONE);
-				}
 			}
 			
 		}
