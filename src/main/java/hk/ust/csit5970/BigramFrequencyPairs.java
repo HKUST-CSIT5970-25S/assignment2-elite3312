@@ -53,6 +53,9 @@ public class BigramFrequencyPairs extends Configured implements Tool {
 			String[] words = line.trim().split("\\s+");
 
 			for (int i=0; i<words.length-1; ++i) {
+				if (words[i].length() == 0) {
+					continue;
+				}
 				BIGRAM.set(words[i],"");
 				context.write(BIGRAM, ONE);
 				BIGRAM.set(words[i],words[i+1]);
