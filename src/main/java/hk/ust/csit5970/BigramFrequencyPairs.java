@@ -105,7 +105,7 @@ public class BigramFrequencyPairs extends Configured implements Tool {
 		@Override
 		public void reduce(PairOfStrings key, Iterable<IntWritable> values,
 				Context context) throws IOException, InterruptedException {
-			float sum = 0.0;
+			float sum = 0f;
 		    for (IntWritable v: values) {
 		         sum += v.get();
 		    }
