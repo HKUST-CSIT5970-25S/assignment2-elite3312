@@ -55,7 +55,7 @@ public class BigramFrequencyPairs extends Configured implements Tool {
 			if (words.length > 1){
 				String previous_word = words[0];
 
-				BIGRAM_for_single_word.set(previous_word, '');
+				BIGRAM_for_single_word.set(previous_word, "");
 				context.write(BIGRAM_for_single_word, ONE);
 
 				for (int i = 1; i < words.length; i++) {
@@ -69,7 +69,7 @@ public class BigramFrequencyPairs extends Configured implements Tool {
 					
 					previous_word = w;
 
-					BIGRAM_for_single_word.set(previous_word, '');
+					BIGRAM_for_single_word.set(previous_word, "");
 					context.write(BIGRAM_for_single_word, ONE);
 				}
 			}
