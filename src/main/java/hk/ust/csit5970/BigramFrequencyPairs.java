@@ -34,9 +34,7 @@ import org.apache.log4j.Logger;
 public class BigramFrequencyPairs extends Configured implements Tool {
 	private static final Logger LOG = Logger.getLogger(BigramFrequencyPairs.class);
 	private  static float cur_left_cnt=0;
-	/*
-	 * TODO: write your Mapper here.
-	 */
+
 	private static class MyMapper extends
 			Mapper<LongWritable, Text, PairOfStrings, IntWritable> {
 

@@ -51,15 +51,19 @@ public class BigramFrequencyStripes extends Configured implements Tool {
 			String line = ((Text) value).toString();
 			String[] words = line.trim().split("\\s+");
 
-			/*
-			 * TODO: Your implementation goes here.
-			 */
+			for(int i = 0; i < words.length - 1; i++){
+				if (words[i].length() == 0) {
+					continue;
+				}
+				KEY.set(words[i]);
+				STRIPE.increment(words[i + 1]);
+				context.write(KEY, STRIPE);
+				STRIPE.clear();
+			}
+			
 		}
 	}
 
-	/*
-	 * TODO: write your reducer to aggregate all stripes associated with each key
-	 */
 	private static class MyReducer extends
 			Reducer<Text, HashMapStringIntWritable, PairOfStrings, FloatWritable> {
 
@@ -72,9 +76,16 @@ public class BigramFrequencyStripes extends Configured implements Tool {
 		public void reduce(Text key,
 				Iterable<HashMapStringIntWritable> stripes, Context context)
 				throws IOException, InterruptedException {
-			/*
-			 * TODO: Your implementation goes here.
-			 */
+			for(HashMapStringIntWritable stripe : stripes){
+				SUM_STRIPES.plus(stripe);
+			}
+	
+			for(String k : SUM_STRIPES.keySet()){
+				FREQ.set(SUM_STRIPES.get(k));
+				BIGRAM.set(key.toString(), k);
+				context.write(BIGRAM, FREQ);
+			}
+			SUM_STRIPES.clear();
 		}
 	}
 
