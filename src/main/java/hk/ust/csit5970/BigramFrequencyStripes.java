@@ -95,7 +95,7 @@ public class BigramFrequencyStripes extends Configured implements Tool {
 			}
 			
 			BIGRAM.set("", "");
-			context.write(BIGRAM, 0);
+			context.write(BIGRAM, FREQ);
 
 			SUM_STRIPES.clear();
 		}
