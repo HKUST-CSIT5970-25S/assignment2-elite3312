@@ -58,7 +58,6 @@ public class BigramFrequencyStripes extends Configured implements Tool {
 			the first ->STRIPE.increment(first);
 			 */
 			for (int i=0; i<words.length-1; ++i) {
-				STRIPE.clear();
 				if (words[i].length() == 0) {
 					continue;
 				}
@@ -67,9 +66,12 @@ public class BigramFrequencyStripes extends Configured implements Tool {
 				context.write(KEY,STRIPE);
 				STRIPE.clear();
 
-				KEY.set(words[i+1]);
+				if (words[i+1].length() == 0) {
+					continue;
+				}
 				STRIPE.increment(words[i+1]);
 				context.write(KEY,STRIPE);
+				STRIPE.clear();
 				
 			}
 			
@@ -91,10 +93,12 @@ public class BigramFrequencyStripes extends Configured implements Tool {
 				Iterable<HashMapStringIntWritable> stripes, Context context)
 				throws IOException, InterruptedException {
 
+			// Sum up all the stripes
 			for(HashMapStringIntWritable stripe : stripes){
 				SUM_STRIPES.plus(stripe);
 			}
 	
+			// Emit output
 			for(String second_word : SUM_STRIPES.keySet()){
 
 				if (second_word.length()==0){
