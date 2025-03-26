@@ -100,7 +100,8 @@ public class BigramFrequencyPairs extends Configured implements Tool {
 		    if(key.getRightElement().toString().equals("")){
 		    	cur_left_cnt = sum;
 		    	VALUE.set(cur_left_cnt);
-				key.setRightElement("\t");
+				//key.setRightElement("\t");, TODO @Perry, may have to un comment this line for formatting
+				
 		    	context.write(key, VALUE);
 		    }
 		    else{

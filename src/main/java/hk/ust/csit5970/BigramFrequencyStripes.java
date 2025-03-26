@@ -34,7 +34,7 @@ import org.apache.log4j.Logger;
 public class BigramFrequencyStripes extends Configured implements Tool {
 	private static final Logger LOG = Logger
 			.getLogger(BigramFrequencyStripes.class);
-	private  static float cur_left_cnt=0.0;
+	private  static float cur_left_cnt=0.0f;
 	//private  static float cur_bigram_cnt=0.0;
 	/*
 	 * Mapper: emits <word, stripe> where stripe is a hash map
@@ -58,20 +58,19 @@ public class BigramFrequencyStripes extends Configured implements Tool {
 			the first ->STRIPE.increment(first);
 			 */
 			for (int i=0; i<words.length-1; ++i) {
+				STRIPE.clear();
 				if (words[i].length() == 0) {
 					continue;
 				}
-				key.set(words[i]);
+				KEY.set(words[i]);
 				STRIPE.increment("");
-				context.write(key,STRIPE);
+				context.write(KEY,STRIPE);
 				STRIPE.clear();
 
-				key.set(words[i+1]);
+				KEY.set(words[i+1]);
 				STRIPE.increment(words[i+1]);
-				context.write(key,STRIPE);
-				STRIPE.clear();
-
-
+				context.write(KEY,STRIPE);
+				
 			}
 			
 			
@@ -95,29 +94,29 @@ public class BigramFrequencyStripes extends Configured implements Tool {
 			for(HashMapStringIntWritable stripe : stripes){
 				SUM_STRIPES.plus(stripe);
 			}
+	
 			for(String second_word : SUM_STRIPES.keySet()){
 
 				if (second_word.length()==0){
-					cur_left_cnt  = SUM_STRIPES.get("");
+					//second word is empty
+					cur_left_cnt= SUM_STRIPES.get("");
 					FREQ.set(cur_left_cnt);
-					BIGRAM.set(key, "\t");
+					BIGRAM.set(key.toString(), "");//TODO, @Perry, may have to use \t for second word
 					context.write(BIGRAM, FREQ);
-					continue;//omit
+					continue;
 				}
 				else{
+					//second word non-empty
 					FREQ.set((float)SUM_STRIPES.get(second_word)/cur_left_cnt);
-					BIGRAM.set(key, second_word);
+					BIGRAM.set(key.toString(), second_word);
 					context.write(BIGRAM, FREQ);
 				}
 			}
-
 			SUM_STRIPES.clear();
+
 		}
 	}
 
-	/*
-	 * TODO: Write your combiner to aggregate all stripes with the same key
-	 */
 	private static class MyCombiner
 			extends
 			Reducer<Text, HashMapStringIntWritable, Text, HashMapStringIntWritable> {
@@ -128,10 +127,14 @@ public class BigramFrequencyStripes extends Configured implements Tool {
 		public void reduce(Text key,
 				Iterable<HashMapStringIntWritable> stripes, Context context)
 				throws IOException, InterruptedException {
-			/*
-			 * TODO: Your implementation goes here.
-			 */
-		}
+					for(HashMapStringIntWritable stripe : stripes){
+						SUM_STRIPES.plus(stripe);
+					}
+					context.write(key, SUM_STRIPES);
+					SUM_STRIPES.clear();
+				}
+
+				
 	}
 
 	/**
