@@ -34,7 +34,8 @@ import org.apache.log4j.Logger;
 public class BigramFrequencyStripes extends Configured implements Tool {
 	private static final Logger LOG = Logger
 			.getLogger(BigramFrequencyStripes.class);
-
+	private  static float cur_left_cnt=0.0;
+	//private  static float cur_bigram_cnt=0.0;
 	/*
 	 * Mapper: emits <word, stripe> where stripe is a hash map
 	 */
@@ -83,6 +84,7 @@ public class BigramFrequencyStripes extends Configured implements Tool {
 		// Reuse objects.
 		private final static HashMapStringIntWritable SUM_STRIPES = new HashMapStringIntWritable();
 		private final static PairOfStrings BIGRAM = new PairOfStrings();
+	
 		private final static FloatWritable FREQ = new FloatWritable();
 
 		@Override
@@ -90,12 +92,24 @@ public class BigramFrequencyStripes extends Configured implements Tool {
 				Iterable<HashMapStringIntWritable> stripes, Context context)
 				throws IOException, InterruptedException {
 
-			for (String k:stripes.keySet()) {
-				SUM_STRIPES.plus(stripes.get(k));
+			for(HashMapStringIntWritable stripe : stripes){
+				SUM_STRIPES.plus(stripe);
 			}
-			
-			BIGRAM.set("", "");
-			context.write(BIGRAM, FREQ);
+			for(String second_word : SUM_STRIPES.keySet()){
+
+				if (second_word.length()==0){
+					cur_left_cnt  = SUM_STRIPES.get("");
+					FREQ.set(cur_left_cnt);
+					BIGRAM.set(key, "\t");
+					context.write(BIGRAM, FREQ);
+					continue;//omit
+				}
+				else{
+					FREQ.set((float)SUM_STRIPES.get(second_word)/cur_left_cnt);
+					BIGRAM.set(key, second_word);
+					context.write(BIGRAM, FREQ);
+				}
+			}
 
 			SUM_STRIPES.clear();
 		}
