@@ -51,15 +51,28 @@ public class BigramFrequencyStripes extends Configured implements Tool {
 			String line = ((Text) value).toString();
 			String[] words = line.trim().split("\\s+");
 
-			for(int i = 0; i < words.length - 1; i++){
+			/*
+			STRIPE is a cnter
+			the ''    ->STRIPE.increment('');
+			the first ->STRIPE.increment(first);
+			 */
+			for (int i=0; i<words.length-1; ++i) {
 				if (words[i].length() == 0) {
 					continue;
 				}
-				KEY.set(words[i]);
-				STRIPE.increment(words[i + 1]);
-				context.write(KEY, STRIPE);
+				key.set(words[i]);
+				STRIPE.increment("");
+				context.write(key,STRIPE);
 				STRIPE.clear();
+
+				key.set(words[i+1]);
+				STRIPE.increment(words[i+1]);
+				context.write(key,STRIPE);
+				STRIPE.clear();
+
+
 			}
+			
 			
 		}
 	}
@@ -76,15 +89,14 @@ public class BigramFrequencyStripes extends Configured implements Tool {
 		public void reduce(Text key,
 				Iterable<HashMapStringIntWritable> stripes, Context context)
 				throws IOException, InterruptedException {
-			for(HashMapStringIntWritable stripe : stripes){
-				SUM_STRIPES.plus(stripe);
+
+			for (String k:stripes.keySet()) {
+				SUM_STRIPES.plus(stripes.get(k));
 			}
-	
-			for(String k : SUM_STRIPES.keySet()){
-				FREQ.set(SUM_STRIPES.get(k));
-				BIGRAM.set(key.toString(), k);
-				context.write(BIGRAM, FREQ);
-			}
+			
+			BIGRAM.set('', '');
+			context.write(BIGRAM, 0);
+
 			SUM_STRIPES.clear();
 		}
 	}
