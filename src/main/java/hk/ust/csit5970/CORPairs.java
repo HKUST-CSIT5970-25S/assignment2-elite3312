@@ -45,7 +45,7 @@ public class CORPairs extends Configured implements Tool {
 	private static class CORMapper1 extends
 			Mapper<LongWritable, Text, Text, IntWritable> {
 		private static String token;
-		private static Text word;
+		private static Text word= new Text();
 		private static final IntWritable ONE = new IntWritable(1);
 		@Override
 		public void map(LongWritable key, Text value, Context context)
@@ -100,7 +100,11 @@ public class CORPairs extends Configured implements Tool {
 			//In the second pass, MapReduce firstly reads the middle result, then produces Freq(A, B) for each word pair (A, B) and calculates COR(A, B).
 
 			// so we need to also produce the frequency of each word pair (i.e., Freq(A, B))
+			if (!doc_tokenizer.hasMoreTokens()){
+				return;
+			}
 			String previous_word = doc_tokenizer.nextToken();
+
 			while (doc_tokenizer.hasMoreTokens()) {
 				String word = doc_tokenizer.nextToken();
 				BIGRAM.set(previous_word, word);
@@ -119,6 +123,7 @@ public class CORPairs extends Configured implements Tool {
 		@Override
 		protected void reduce(PairOfStrings key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
 			Iterator<IntWritable> iter = values.iterator();
+			if (!iter.hasNext()){return;}
 			sum = 0;
 			while (iter.hasNext()) {
 				sum += iter.next().get();
@@ -134,8 +139,8 @@ public class CORPairs extends Configured implements Tool {
 		private static double cnt_AB ;
 		private static String A;
 		private static String B;
-		private static double cor = ;
-		private static DoubleWritable COR;
+		private static double cor ;
+		private static DoubleWritable COR=new DoubleWritable();
 		/*
 		 * Preload the middle result file.
 		 * In the middle result file, each line contains a word and its frequency Freq(A), seperated by "\t"
@@ -176,7 +181,7 @@ public class CORPairs extends Configured implements Tool {
 		 */
 		@Override
 		protected void reduce(PairOfStrings key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
-			cnt_AB=0
+			cnt_AB=0;
 			Iterator<IntWritable> iter = values.iterator();
 
 			while (iter.hasNext()) {
@@ -196,7 +201,7 @@ public class CORPairs extends Configured implements Tool {
 		
 
 			cor = cnt_AB / ( word_total_map.get(A)* word_total_map.get(B));
-			COR.set(cor)
+			COR.set(cor);
 			context.write(key, COR);
 		}
 	}

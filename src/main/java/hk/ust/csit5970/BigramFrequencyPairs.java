@@ -33,7 +33,7 @@ import org.apache.log4j.Logger;
  */
 public class BigramFrequencyPairs extends Configured implements Tool {
 	private static final Logger LOG = Logger.getLogger(BigramFrequencyPairs.class);
-	private  static float cur_left_cnt=0;
+	
 
 	private static class MyMapper extends
 			Mapper<LongWritable, Text, PairOfStrings, IntWritable> {
@@ -86,7 +86,7 @@ public class BigramFrequencyPairs extends Configured implements Tool {
 
 		// Reuse objects.
 		private final static FloatWritable VALUE = new FloatWritable();
-		
+		private  static float cur_left_cnt=0;
 		//the keys are sorted, so we can simply use cur_left_cnt to store the count of the left element
 
 		@Override

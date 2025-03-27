@@ -34,7 +34,7 @@ import org.apache.log4j.Logger;
 public class BigramFrequencyStripes extends Configured implements Tool {
 	private static final Logger LOG = Logger
 			.getLogger(BigramFrequencyStripes.class);
-	private  static float cur_left_cnt=0.0f;
+	
 	//private  static float cur_bigram_cnt=0.0;
 	/*
 	 * Mapper: emits <word, stripe> where stripe is a hash map
@@ -87,7 +87,7 @@ public class BigramFrequencyStripes extends Configured implements Tool {
 		private final static PairOfStrings BIGRAM = new PairOfStrings();
 	
 		private final static FloatWritable FREQ = new FloatWritable();
-
+		private  static float cur_left_cnt=0.0f;
 		@Override
 		public void reduce(Text key,
 				Iterable<HashMapStringIntWritable> stripes, Context context)
