@@ -91,7 +91,8 @@ public class CORPairs extends Configured implements Tool {
 	 */
 	public static class CORPairsMapper2 extends Mapper<LongWritable, Text, PairOfStrings, IntWritable> {
 		private static final IntWritable ONE = new IntWritable(1);
-		
+		private static String previous_word;
+		private static String word;
 		private static final PairOfStrings BIGRAM = new PairOfStrings();
 		@Override
 		protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
@@ -103,10 +104,10 @@ public class CORPairs extends Configured implements Tool {
 			if (!doc_tokenizer.hasMoreTokens()){
 				return;
 			}
-			String previous_word = doc_tokenizer.nextToken();
+			previous_word = doc_tokenizer.nextToken();
 
 			while (doc_tokenizer.hasMoreTokens()) {
-				String word = doc_tokenizer.nextToken();
+				word = doc_tokenizer.nextToken();
 				BIGRAM.set(previous_word, word);
 				context.write(BIGRAM, ONE);
 				previous_word = word;
