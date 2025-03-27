@@ -137,7 +137,7 @@ public class CORStripes extends Configured implements Tool {
                     Combined_STRIPE.increment(neighbor, count);
                 }
             }
-            for (Map.Entry<String, Integer> entry : combinedStripe.entrySet()) {
+            for (Map.Entry<String, Integer> entry : Combined_STRIPE.entrySet()) {
 				MAP_key.set(entry.getKey());
 				MAP_entry.set(entry.getValue());
                 output.put(MAP_key, MAP_entry);
@@ -152,11 +152,12 @@ public class CORStripes extends Configured implements Tool {
 	 * second-pass Reducer here.
 	 */
 	public static class CORStripesReducer2 extends Reducer<Text, MapWritable, PairOfStrings, DoubleWritable> {
+		private static Map<String, Integer> word_total_map = new HashMap<String, Integer>();
 		private static String first_word;
 		private static String second_word;
 		private static final HashMapStringIntWritable LAST_STRIPE=new HashMapStringIntWritable();
-		private static Text neighbor=new Text();
-		private static int count=new IntWritable();
+		private static String neighbor;
+		private static int count;
 		private static int cnt_A;
 		private static int cnt_B;
 		private static int cnt_AB;
@@ -206,9 +207,9 @@ public class CORStripes extends Configured implements Tool {
 			
 			for (MapWritable stripe : values) {
 				for (Map.Entry<Writable, Writable> entry : stripe.entrySet()) {
-					neighbor.set( entry.getKey().toString());
-					count = .set(entry.getValue().get());
-					finalStripe.increment(neighbor, count);
+					String neighbor = ((Text) entry.getKey()).toString();
+					count =((IntWritable) entry.getValue()).get();
+					LAST_STRIPE.increment(neighbor, count);
 				}
 			}
 
@@ -221,15 +222,15 @@ public class CORStripes extends Configured implements Tool {
 				cnt_A=0;
 			}
 			
-			for (Map.Entry<String, Integer> entry : finalStripe.entrySet()) {
+			for (Map.Entry<String, Integer> entry : LAST_STRIPE.entrySet()) {
 				second_word= entry.getKey();
 				cnt_AB = entry.getValue();
-				if (word_total_map.containsKey(word2) )
-				{cnt_B= word_total_map.get(word2) ;}
+				if (word_total_map.containsKey(second_word) )
+				{cnt_B= word_total_map.get(second_word) ;}
 				else{cnt_B= 0;}
 
-				cor = (double) freqAB / (freqA * freqB);
-				outputKey.set(first_word, word2);
+				cor = (double) cnt_AB / (cnt_A * cnt_B);
+				outputKey.set(first_word, second_word);
 				outputValue .set( cor);
 				context.write(outputKey, outputValue);
 			}
