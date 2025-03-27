@@ -29,76 +29,140 @@ public class CORStripes extends Configured implements Tool {
 	private static final Logger LOG = Logger.getLogger(CORStripes.class);
 
 	/*
-	 * TODO: write your first-pass Mapper here.
+	 * first-pass Mapper
 	 */
 	private static class CORMapper1 extends
 			Mapper<LongWritable, Text, Text, IntWritable> {
+		private static String token;
+		private static Text word= new Text();
+		private static final IntWritable ONE = new IntWritable(1);
 		@Override
 		public void map(LongWritable key, Text value, Context context)
 				throws IOException, InterruptedException {
-			HashMap<String, Integer> word_set = new HashMap<String, Integer>();
 			// Please use this tokenizer! DO NOT implement a tokenizer by yourself!
 			String clean_doc = value.toString().replaceAll("[^a-z A-Z]", " ");
 			StringTokenizer doc_tokenizer = new StringTokenizer(clean_doc);
-			/*
-			 * TODO: Your implementation goes here.
-			 */
+			while (doc_tokenizer.hasMoreTokens()) {
+    			token = doc_tokenizer.nextToken();
+				word.set(token);
+				context.write(word, ONE);
+			}
+
 		}
 	}
 
 	/*
-	 * TODO: Write your first-pass reducer here.
+	 * first-pass reducer here.
 	 */
 	private static class CORReducer1 extends
 			Reducer<Text, IntWritable, Text, IntWritable> {
+		private static int sum;
+		private static final IntWritable SUM = new IntWritable();
 		@Override
 		public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
-			/*
-			 * TODO: Your implementation goes here.
-			 */
+			Iterator<IntWritable> iter = values.iterator();
+			sum = 0;
+			while (iter.hasNext()) {
+				sum += iter.next().get();
+			}
+			SUM.set(sum);
+			context.write(key, SUM);
 		}
 	}
 
 	/*
-	 * TODO: Write your second-pass Mapper here.
+	 * second-pass Mapper
 	 */
 	public static class CORStripesMapper2 extends Mapper<LongWritable, Text, Text, MapWritable> {
+		private static final HashMapStringIntWritable STRIPE=new HashMapStringIntWritable();
+		private static final Text KEY=new Text();
+		private static final MapWritable MAP=new MapWritable();
+		private static final Text MAP_key = new Text();
+		private static final IntWritable MAP_entry = new IntWritable();
+
+		private static  String first_word;
+		private static  String second_word;
 		@Override
 		protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+
 			Set<String> sorted_word_set = new TreeSet<String>();
-			// Please use this tokenizer! DO NOT implement a tokenizer by yourself!
-			String doc_clean = value.toString().replaceAll("[^a-z A-Z]", " ");
-			StringTokenizer doc_tokenizers = new StringTokenizer(doc_clean);
-			while (doc_tokenizers.hasMoreTokens()) {
-				sorted_word_set.add(doc_tokenizers.nextToken());
-			}
-			/*
-			 * TODO: Your implementation goes here.
-			 */
+            String doc_clean = value.toString().replaceAll("[^a-z A-Z]", " ");
+            StringTokenizer doc_tokenizers = new StringTokenizer(doc_clean);
+            while (doc_tokenizers.hasMoreTokens()) {
+                sorted_word_set.add(doc_tokenizers.nextToken());
+            }
+
+            List<String> wordList = new ArrayList<String>(sorted_word_set);
+
+            for (int i = 0; i < wordList.size(); i++) {
+                first_word = wordList.get(i);
+                for (int j = i + 1; j < wordList.size(); j++) {
+                    second_word = wordList.get(j);
+                    STRIPE.increment(second_word);
+                }
+                KEY.set(first_word);
+                for (Map.Entry<String, Integer> entry : STRIPE.entrySet()) {
+					MAP_key.set(entry.getKey());
+					MAP_entry.set(entry.getValue());
+                    MAP.put(MAP_key, MAP_entry);
+                }
+                context.write(KEY, MAP);
+				STRIPE.clear();
+				MAP.clear();
+            }
+
+
+		
 		}
 	}
 
 	/*
-	 * TODO: Write your second-pass Combiner here.
+	 * second-pass Combiner here.
 	 */
 	public static class CORStripesCombiner2 extends Reducer<Text, MapWritable, Text, MapWritable> {
-		static IntWritable ZERO = new IntWritable(0);
-
+		private static final HashMapStringIntWritable Combined_STRIPE=new HashMapStringIntWritable();
+		private static String neighbor;
+		private static int count;
+		private static MapWritable output =new MapWritable ();
+		private static final Text MAP_key = new Text();
+		private static final IntWritable MAP_entry = new IntWritable();
 		@Override
 		protected void reduce(Text key, Iterable<MapWritable> values, Context context) throws IOException, InterruptedException {
-			/*
-			 * TODO: Your implementation goes here.
-			 */
-		}
+
+
+            for (MapWritable stripe : values) {
+                for (Map.Entry<Writable, Writable> entry : stripe.entrySet()) {
+                    neighbor = ((Text) entry.getKey()).toString();
+                    count = ((IntWritable) entry.getValue()).get();
+                    Combined_STRIPE.increment(neighbor, count);
+                }
+            }
+            for (Map.Entry<String, Integer> entry : combinedStripe.entrySet()) {
+				MAP_key.set(entry.getKey());
+				MAP_entry.set(entry.getValue());
+                output.put(MAP_key, MAP_entry);
+            }
+            context.write(key, output);
+			Combined_STRIPE.clear();
+			output.clear();
+		}	
 	}
 
 	/*
-	 * TODO: Write your second-pass Reducer here.
+	 * second-pass Reducer here.
 	 */
 	public static class CORStripesReducer2 extends Reducer<Text, MapWritable, PairOfStrings, DoubleWritable> {
-		private static Map<String, Integer> word_total_map = new HashMap<String, Integer>();
-		private static IntWritable ZERO = new IntWritable(0);
-
+		private static String first_word;
+		private static String second_word;
+		private static final HashMapStringIntWritable LAST_STRIPE=new HashMapStringIntWritable();
+		private static Text neighbor=new Text();
+		private static int count=new IntWritable();
+		private static int cnt_A;
+		private static int cnt_B;
+		private static int cnt_AB;
+		private static double cor;
+		private static PairOfStrings outputKey =new PairOfStrings();
+		private static DoubleWritable outputValue=new DoubleWritable();
 		/*
 		 * Preload the middle result file.
 		 * In the middle result file, each line contains a word and its frequency Freq(A), seperated by "\t"
@@ -135,13 +199,41 @@ public class CORStripes extends Configured implements Tool {
 		}
 
 		/*
-		 * TODO: Write your second-pass Reducer here.
+		 * second-pass Reducer here.
 		 */
 		@Override
 		protected void reduce(Text key, Iterable<MapWritable> values, Context context) throws IOException, InterruptedException {
-			/*
-			 * TODO: Your implementation goes here.
-			 */
+			
+			for (MapWritable stripe : values) {
+				for (Map.Entry<Writable, Writable> entry : stripe.entrySet()) {
+					neighbor.set( entry.getKey().toString());
+					count = .set(entry.getValue().get());
+					finalStripe.increment(neighbor, count);
+				}
+			}
+
+			first_word = key.toString();
+			if( word_total_map.containsKey(first_word))
+			{ 
+				cnt_A= word_total_map.get(first_word) ;
+			}
+			else{
+				cnt_A=0;
+			}
+			
+			for (Map.Entry<String, Integer> entry : finalStripe.entrySet()) {
+				second_word= entry.getKey();
+				cnt_AB = entry.getValue();
+				if (word_total_map.containsKey(word2) )
+				{cnt_B= word_total_map.get(word2) ;}
+				else{cnt_B= 0;}
+
+				cor = (double) freqAB / (freqA * freqB);
+				outputKey.set(first_word, word2);
+				outputValue .set( cor);
+				context.write(outputKey, outputValue);
+			}
+			LAST_STRIPE.clear();
 		}
 	}
 
