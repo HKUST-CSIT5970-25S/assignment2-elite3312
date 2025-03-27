@@ -199,7 +199,7 @@ public class CORStripes extends Configured implements Tool {
 			for (MapWritable stripe : values) {
 				for (Map.Entry<Writable, Writable> entry : stripe.entrySet()) {
 					String neighbor = ((Text) entry.getKey()).toString();
-					count =((IntWritable) entry.getValue()).get();
+					int count =((IntWritable) entry.getValue()).get();
 					LAST_STRIPE.increment(neighbor, count);
 				}
 			}
