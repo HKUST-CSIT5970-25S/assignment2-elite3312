@@ -44,7 +44,7 @@ public class CORPairs extends Configured implements Tool {
 	//In the first pass, MapReduce produces a middle result that contains the frequency of each word (i.e., Freq(A)) 
 	private static class CORMapper1 extends
 			Mapper<LongWritable, Text, Text, IntWritable> {
-		private static String token;
+
 		private static Text word= new Text();
 		private static final IntWritable ONE = new IntWritable(1);
 		@Override
@@ -54,7 +54,7 @@ public class CORPairs extends Configured implements Tool {
 			String clean_doc = value.toString().replaceAll("[^a-z A-Z]", " ");
 			StringTokenizer doc_tokenizer = new StringTokenizer(clean_doc);
 			while (doc_tokenizer.hasMoreTokens()) {
-    			token = doc_tokenizer.nextToken();
+    			String token = doc_tokenizer.nextToken();
 				word.set(token);
 				context.write(word, ONE);
 			}
@@ -67,14 +67,14 @@ public class CORPairs extends Configured implements Tool {
 	 */
 	private static class CORReducer1 extends
 			Reducer<Text, IntWritable, Text, IntWritable> {
-		private static int sum;
+
 		private static final IntWritable SUM = new IntWritable();
 		@Override
 		public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
 			//In the first pass, MapReduce produces a middle result that contains the
 			//  frequency of each word (i.e., Freq(A))
 			Iterator<IntWritable> iter = values.iterator();
-			sum = 0;
+			int sum = 0;
 			while (iter.hasNext()) {
 				sum += iter.next().get();
 			}
@@ -91,8 +91,7 @@ public class CORPairs extends Configured implements Tool {
 	 */
 	public static class CORPairsMapper2 extends Mapper<LongWritable, Text, PairOfStrings, IntWritable> {
 		private static final IntWritable ONE = new IntWritable(1);
-		private static String previous_word;
-		private static String word;
+
 		private static final PairOfStrings BIGRAM = new PairOfStrings();
 		@Override
 		protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
@@ -104,10 +103,10 @@ public class CORPairs extends Configured implements Tool {
 			if (!doc_tokenizer.hasMoreTokens()){
 				return;
 			}
-			previous_word = doc_tokenizer.nextToken();
+			String previous_word = doc_tokenizer.nextToken();
 
 			while (doc_tokenizer.hasMoreTokens()) {
-				word = doc_tokenizer.nextToken();
+				String word = doc_tokenizer.nextToken();
 				BIGRAM.set(previous_word, word);
 				context.write(BIGRAM, ONE);
 				previous_word = word;
@@ -119,13 +118,13 @@ public class CORPairs extends Configured implements Tool {
 	 * second-pass Combiner here.
 	 */
 	private static class CORPairsCombiner2 extends Reducer<PairOfStrings, IntWritable, PairOfStrings, IntWritable> {
-		private static int sum;
+
 		private static final IntWritable SUM = new IntWritable();
 		@Override
 		protected void reduce(PairOfStrings key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
 			Iterator<IntWritable> iter = values.iterator();
 			if (!iter.hasNext()){return;}
-			sum = 0;
+			int sum = 0;
 			while (iter.hasNext()) {
 				sum += iter.next().get();
 			}
@@ -137,10 +136,8 @@ public class CORPairs extends Configured implements Tool {
 
 	public static class CORPairsReducer2 extends Reducer<PairOfStrings, IntWritable, PairOfStrings, DoubleWritable> {
 		private final static Map<String, Integer> word_total_map = new HashMap<String, Integer>();
-		private static double cnt_AB ;
-		private static String A;
-		private static String B;
-		private static double cor ;
+
+	
 		private static DoubleWritable COR=new DoubleWritable();
 		/*
 		 * Preload the middle result file.
@@ -182,7 +179,7 @@ public class CORPairs extends Configured implements Tool {
 		 */
 		@Override
 		protected void reduce(PairOfStrings key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
-			cnt_AB=0;
+			double cnt_AB=0;
 			Iterator<IntWritable> iter = values.iterator();
 
 			while (iter.hasNext()) {
@@ -191,17 +188,17 @@ public class CORPairs extends Configured implements Tool {
 			}
 
 
-			A = key.getLeftElement();
+			String A = key.getLeftElement();
 			if (word_total_map.containsKey(A)==false) //cnt a is 0
 				return;
 
-			B = key.getRightElement();
+			String B = key.getRightElement();
 			if (word_total_map.containsKey(B)==false) //cnt b is 0
 				return;
 
 		
 
-			cor = cnt_AB / ( word_total_map.get(A)* word_total_map.get(B));
+			double cor = cnt_AB / ( word_total_map.get(A)* word_total_map.get(B));
 			COR.set(cor);
 			context.write(key, COR);
 		}

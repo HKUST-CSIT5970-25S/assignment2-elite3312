@@ -33,7 +33,7 @@ public class CORStripes extends Configured implements Tool {
 	 */
 	private static class CORMapper1 extends
 			Mapper<LongWritable, Text, Text, IntWritable> {
-		private static String token;
+
 		private static Text word= new Text();
 		private static final IntWritable ONE = new IntWritable(1);
 		@Override
@@ -43,7 +43,7 @@ public class CORStripes extends Configured implements Tool {
 			String clean_doc = value.toString().replaceAll("[^a-z A-Z]", " ");
 			StringTokenizer doc_tokenizer = new StringTokenizer(clean_doc);
 			while (doc_tokenizer.hasMoreTokens()) {
-    			token = doc_tokenizer.nextToken();
+    			String token = doc_tokenizer.nextToken();
 				word.set(token);
 				context.write(word, ONE);
 			}
@@ -56,12 +56,12 @@ public class CORStripes extends Configured implements Tool {
 	 */
 	private static class CORReducer1 extends
 			Reducer<Text, IntWritable, Text, IntWritable> {
-		private static int sum;
+	
 		private static final IntWritable SUM = new IntWritable();
 		@Override
 		public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
 			Iterator<IntWritable> iter = values.iterator();
-			sum = 0;
+			int sum = 0;
 			while (iter.hasNext()) {
 				sum += iter.next().get();
 			}
@@ -80,8 +80,6 @@ public class CORStripes extends Configured implements Tool {
 		private static final Text MAP_key = new Text();
 		private static final IntWritable MAP_entry = new IntWritable();
 
-		private static  String first_word;
-		private static  String second_word;
 		@Override
 		protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
 
@@ -95,9 +93,9 @@ public class CORStripes extends Configured implements Tool {
             List<String> wordList = new ArrayList<String>(sorted_word_set);
 
             for (int i = 0; i < wordList.size(); i++) {
-                first_word = wordList.get(i);
+                String first_word = wordList.get(i);
                 for (int j = i + 1; j < wordList.size(); j++) {
-                    second_word = wordList.get(j);
+                    String second_word = wordList.get(j);
                     STRIPE.increment(second_word);
                 }
                 KEY.set(first_word);
@@ -121,8 +119,7 @@ public class CORStripes extends Configured implements Tool {
 	 */
 	public static class CORStripesCombiner2 extends Reducer<Text, MapWritable, Text, MapWritable> {
 		private static final HashMapStringIntWritable Combined_STRIPE=new HashMapStringIntWritable();
-		private static String neighbor;
-		private static int count;
+
 		private static MapWritable output =new MapWritable ();
 		private static final Text MAP_key = new Text();
 		private static final IntWritable MAP_entry = new IntWritable();
@@ -132,8 +129,8 @@ public class CORStripes extends Configured implements Tool {
 
             for (MapWritable stripe : values) {
                 for (Map.Entry<Writable, Writable> entry : stripe.entrySet()) {
-                    neighbor = ((Text) entry.getKey()).toString();
-                    count = ((IntWritable) entry.getValue()).get();
+                    String neighbor = ((Text) entry.getKey()).toString();
+                    int count = ((IntWritable) entry.getValue()).get();
                     Combined_STRIPE.increment(neighbor, count);
                 }
             }
@@ -153,15 +150,9 @@ public class CORStripes extends Configured implements Tool {
 	 */
 	public static class CORStripesReducer2 extends Reducer<Text, MapWritable, PairOfStrings, DoubleWritable> {
 		private static Map<String, Integer> word_total_map = new HashMap<String, Integer>();
-		private static String first_word;
-		private static String second_word;
+
 		private static final HashMapStringIntWritable LAST_STRIPE=new HashMapStringIntWritable();
-		private static String neighbor;
-		private static int count;
-		private static int cnt_A;
-		private static int cnt_B;
-		private static int cnt_AB;
-		private static double cor;
+	
 		private static PairOfStrings outputKey =new PairOfStrings();
 		private static DoubleWritable outputValue=new DoubleWritable();
 		/*
@@ -213,7 +204,8 @@ public class CORStripes extends Configured implements Tool {
 				}
 			}
 
-			first_word = key.toString();
+			String first_word = key.toString();
+			int cnt_A;
 			if( word_total_map.containsKey(first_word))
 			{ 
 				cnt_A= word_total_map.get(first_word) ;
@@ -223,13 +215,15 @@ public class CORStripes extends Configured implements Tool {
 			}
 			
 			for (Map.Entry<String, Integer> entry : LAST_STRIPE.entrySet()) {
-				second_word= entry.getKey();
-				cnt_AB = entry.getValue();
+				String second_word= entry.getKey();
+				int cnt_AB = entry.getValue();
+
+				int cnt_B;
 				if (word_total_map.containsKey(second_word) )
-				{cnt_B= word_total_map.get(second_word) ;}
+				{ cnt_B= word_total_map.get(second_word) ;}
 				else{cnt_B= 0;}
 
-				cor = (double) cnt_AB / (cnt_A * cnt_B);
+				double cor = (double) cnt_AB / (cnt_A * cnt_B);
 				outputKey.set(first_word, second_word);
 				outputValue .set( cor);
 				context.write(outputKey, outputValue);
