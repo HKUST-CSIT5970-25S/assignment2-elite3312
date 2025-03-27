@@ -39,69 +39,103 @@ public class CORPairs extends Configured implements Tool {
 	private static final Logger LOG = Logger.getLogger(CORPairs.class);
 
 	/*
-	 * TODO: Write your first-pass Mapper here.
+	 * first-pass Mapper
 	 */
+	//In the first pass, MapReduce produces a middle result that contains the frequency of each word (i.e., Freq(A)) 
 	private static class CORMapper1 extends
 			Mapper<LongWritable, Text, Text, IntWritable> {
+		private static String token;
+		private static Text word;
+		private static final IntWritable ONE = new IntWritable(1);
 		@Override
 		public void map(LongWritable key, Text value, Context context)
 				throws IOException, InterruptedException {
-			HashMap<String, Integer> word_set = new HashMap<String, Integer>();
 			// Please use this tokenizer! DO NOT implement a tokenizer by yourself!
 			String clean_doc = value.toString().replaceAll("[^a-z A-Z]", " ");
 			StringTokenizer doc_tokenizer = new StringTokenizer(clean_doc);
-			/*
-			 * TODO: Your implementation goes here.
-			 */
+			while (doc_tokenizer.hasMoreTokens()) {
+    			token = doc_tokenizer.nextToken();
+				word.set(token);
+				context.write(word, ONE);
+			}
+
 		}
 	}
 
 	/*
-	 * TODO: Write your first-pass reducer here.
+	 * first-pass reducer
 	 */
 	private static class CORReducer1 extends
 			Reducer<Text, IntWritable, Text, IntWritable> {
+		private static int sum;
+		private static final IntWritable SUM = new IntWritable();
 		@Override
 		public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
-			/*
-			 * TODO: Your implementation goes here.
-			 */
+			//In the first pass, MapReduce produces a middle result that contains the
+			//  frequency of each word (i.e., Freq(A))
+			Iterator<IntWritable> iter = values.iterator();
+			sum = 0;
+			while (iter.hasNext()) {
+				sum += iter.next().get();
+			}
+			SUM.set(sum);
+			context.write(key, SUM);
+
+
 		}
 	}
 
 
 	/*
-	 * TODO: Write your second-pass Mapper here.
+	 * second-pass Mapper
 	 */
 	public static class CORPairsMapper2 extends Mapper<LongWritable, Text, PairOfStrings, IntWritable> {
+		private static final IntWritable ONE = new IntWritable(1);
+		
+		private static final PairOfStrings BIGRAM = new PairOfStrings();
 		@Override
 		protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
 			// Please use this tokenizer! DO NOT implement a tokenizer by yourself!
 			StringTokenizer doc_tokenizer = new StringTokenizer(value.toString().replaceAll("[^a-z A-Z]", " "));
-			/*
-			 * TODO: Your implementation goes here.
-			 */
+			//In the second pass, MapReduce firstly reads the middle result, then produces Freq(A, B) for each word pair (A, B) and calculates COR(A, B).
+
+			// so we need to also produce the frequency of each word pair (i.e., Freq(A, B))
+			String previous_word = doc_tokenizer.nextToken();
+			while (doc_tokenizer.hasMoreTokens()) {
+				String word = doc_tokenizer.nextToken();
+				BIGRAM.set(previous_word, word);
+				context.write(BIGRAM, ONE);
+				previous_word = word;
+			}
 		}
 	}
 
 	/*
-	 * TODO: Write your second-pass Combiner here.
+	 * second-pass Combiner here.
 	 */
 	private static class CORPairsCombiner2 extends Reducer<PairOfStrings, IntWritable, PairOfStrings, IntWritable> {
+		private static int sum;
+		private static final IntWritable SUM = new IntWritable();
 		@Override
 		protected void reduce(PairOfStrings key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
-			/*
-			 * TODO: Your implementation goes here.
-			 */
+			Iterator<IntWritable> iter = values.iterator();
+			sum = 0;
+			while (iter.hasNext()) {
+				sum += iter.next().get();
+			}
+			SUM.set(sum);
+			context.write(key, SUM);
 		}
 	}
 
-	/*
-	 * TODO: Write your second-pass Reducer here.
-	 */
+
 	public static class CORPairsReducer2 extends Reducer<PairOfStrings, IntWritable, PairOfStrings, DoubleWritable> {
 		private final static Map<String, Integer> word_total_map = new HashMap<String, Integer>();
-
+		private static double cnt_AB ;
+		private static String A;
+		private static String B;
+		private static double cor = ;
+		private static DoubleWritable COR;
 		/*
 		 * Preload the middle result file.
 		 * In the middle result file, each line contains a word and its frequency Freq(A), seperated by "\t"
@@ -138,13 +172,32 @@ public class CORPairs extends Configured implements Tool {
 		}
 
 		/*
-		 * TODO: write your second-pass Reducer here.
+		 * second-pass Reducer here.
 		 */
 		@Override
 		protected void reduce(PairOfStrings key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
-			/*
-			 * TODO: Your implementation goes here.
-			 */
+			cnt_AB=0
+			Iterator<IntWritable> iter = values.iterator();
+
+			while (iter.hasNext()) {
+				cnt_AB += iter.next().get();
+
+			}
+
+
+			A = key.getLeftElement();
+			if (word_total_map.containsKey(A)==false) //cnt a is 0
+				return;
+
+			B = key.getRightElement();
+			if (word_total_map.containsKey(B)==false) //cnt b is 0
+				return;
+
+		
+
+			cor = cnt_AB / ( word_total_map.get(A)* word_total_map.get(B));
+			COR.set(cor)
+			context.write(key, COR);
 		}
 	}
 
