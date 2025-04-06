@@ -3,6 +3,7 @@ from collections import Counter
 from pandas import DataFrame
 
 path_to_input_text = "cor-demo-sample.txt" # Replace this by your testing input data.
+#path_to_input_text = "cor-demo-sample_with_different_capitals_of_samew.txt"
 
 def drop_empty_item(words):
     return [word for word in words if word != '']
